@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Sidebar from "../../components/sidebar";
-import { tickets as mockTickets } from "../../data/tickets";
+import { supabase } from "../../lib/supabase";
 
 export default function TicketDetailPage() {
     const params = useParams();
@@ -17,25 +17,33 @@ export default function TicketDetailPage() {
     const [showAssignMenu, setShowAssignMenu] = useState(false);
 
     useEffect(() => {
-        const storedTickets = localStorage.getItem("tickets");
+        const loadTicket = async () => {
+            const { data, error } = await supabase
+                .from("tickets")
+                .select("*")
+                .eq("id", params.id)
+                .maybeSingle();
 
-        const ticketList = storedTickets
-            ? JSON.parse(storedTickets)
-            : mockTickets;
+            if (error) {
+                console.error("Error loading ticket:", error);
+                setLoading(false);
+                return;
+            }
 
-        const foundTicket = ticketList.find(
-            (ticket: any) => ticket.id === params.id
-        );
+            if (data) {
+                console.log("TICKET DATA:", data);
 
-        if (foundTicket) {
-            setTicket(foundTicket);
-            setMessages(foundTicket.conversation ?? []);
-        }
+                setTicket(data);
+                setMessages(data.conversation ?? []);
+            }
 
-        setLoading(false);
+            setLoading(false);
+        };
+
+        loadTicket();
     }, [params.id]);
 
-    const handleSendReply = () => {
+    const handleSendReply = async () => {
         if (!reply.trim() || !ticket) {
             return;
         }
@@ -50,93 +58,71 @@ export default function TicketDetailPage() {
             newMessage,
         ];
 
+        const { error } = await supabase
+            .from("tickets")
+            .update({
+                conversation: updatedMessages,
+            })
+            .eq("id", ticket.id);
+
+        if (error) {
+            console.error("Error sending reply:", error);
+            alert("Failed to send reply.");
+            return;
+        }
+
         setMessages(updatedMessages);
         setReply("");
-
-        const storedTickets = localStorage.getItem("tickets");
-
-        if (storedTickets) {
-            const ticketList = JSON.parse(storedTickets);
-
-            const updatedTickets = ticketList.map(
-                (currentTicket: any) =>
-                    currentTicket.id === ticket.id
-                        ? {
-                            ...currentTicket,
-                            conversation: updatedMessages,
-                        }
-                        : currentTicket
-            );
-
-            localStorage.setItem(
-                "tickets",
-                JSON.stringify(updatedTickets)
-            );
-        }
     };
 
-    const handleChangeStatus = (newStatus: string) => {
+    const handleChangeStatus = async (newStatus: string) => {
         if (!ticket) {
             return;
         }
 
-        const updatedTicket = {
+        const { error } = await supabase
+            .from("tickets")
+            .update({
+                status: newStatus,
+            })
+            .eq("id", ticket.id);
+
+        if (error) {
+            console.error("Error changing status:", error);
+            alert("Failed to change status.");
+            return;
+        }
+
+        setTicket({
             ...ticket,
             status: newStatus,
-        };
-
-        setTicket(updatedTicket);
-
-        const storedTickets = localStorage.getItem("tickets");
-
-        if (storedTickets) {
-            const ticketList = JSON.parse(storedTickets);
-
-            const updatedTickets = ticketList.map(
-                (currentTicket: any) =>
-                    currentTicket.id === ticket.id
-                        ? updatedTicket
-                        : currentTicket
-            );
-
-            localStorage.setItem(
-                "tickets",
-                JSON.stringify(updatedTickets)
-            );
-        }
+        });
 
         setShowStatusMenu(false);
     };
 
-    const handleAssignTicket = (assignedTo: string) => {
+    const handleAssignTicket = async (assignedTo: string) => {
         if (!ticket) {
             return;
         }
 
-        const updatedTicket = {
-            ...ticket,
-            assignedTo: assignedTo,
-        };
+        const { error } = await supabase
+            .from("tickets")
+            .update({
+                assigned_to: assignedTo,
+            })
+            .eq("id", ticket.id);
 
-        setTicket(updatedTicket);
-
-        const storedTickets = localStorage.getItem("tickets");
-
-        if (storedTickets) {
-            const ticketList = JSON.parse(storedTickets);
-
-            const updatedTickets = ticketList.map(
-                (currentTicket: any) =>
-                    currentTicket.id === ticket.id
-                        ? updatedTicket
-                        : currentTicket
-            );
-
-            localStorage.setItem(
-                "tickets",
-                JSON.stringify(updatedTickets)
-            );
+        if (error) {
+            console.error("Error assigning ticket:", error);
+            alert("Failed to assign ticket.");
+            return;
         }
+
+        setTicket({
+            ...ticket,
+            assigned_to: assignedTo,
+        });
 
         setShowAssignMenu(false);
     };
@@ -258,7 +244,7 @@ export default function TicketDetailPage() {
                             </p>
 
                             <p className="mt-1 font-medium text-gray-900">
-                                {ticket.assignedTo}
+                                {ticket.assigned_to}
                             </p>
                         </div>
                     </div>
@@ -294,7 +280,7 @@ export default function TicketDetailPage() {
                             </p>
 
                             <p className="mt-1 font-medium text-gray-900">
-                                {ticket.aiTriage?.category || ticket.category}
+                                {ticket.ai_category || ticket.category}
                             </p>
                         </div>
 
@@ -304,7 +290,7 @@ export default function TicketDetailPage() {
                             </p>
 
                             <p className="mt-1 font-medium text-gray-900">
-                                {ticket.aiTriage?.priority || ticket.priority}
+                                {ticket.ai_priority || ticket.priority}
                             </p>
                         </div>
 
@@ -314,7 +300,7 @@ export default function TicketDetailPage() {
                             </p>
 
                             <p className="mt-1 font-medium text-gray-900">
-                                {ticket.aiTriage?.confidence ?? "N/A"}%
+                                {ticket.ai_confidence ?? "N/A"}%
                             </p>
                         </div>
                     </div>
@@ -325,7 +311,7 @@ export default function TicketDetailPage() {
                         </p>
 
                         <p className="mt-1 text-sm leading-6 text-gray-600">
-                            {ticket.aiTriage?.reasoning ||
+                            {ticket.ai_reasoning ||
                                 "AI triage information is not available for this ticket."}
                         </p>
                     </div>

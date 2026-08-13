@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "../components/sidebar";
-import { tickets as mockTickets } from "../data/tickets";
+import { supabase } from "../lib/supabase";
 
 export default function TicketsPage() {
   const router = useRouter();
 
-  const [ticketList, setTicketList] = useState(mockTickets);
+  const [ticketList, setTicketList] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [priorityFilter, setPriorityFilter] = useState("All Priorities");
@@ -35,17 +35,22 @@ export default function TicketsPage() {
   });
 
   useEffect(() => {
-    const storedTickets = localStorage.getItem("tickets");
+  const loadTickets = async () => {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    if (storedTickets) {
-      setTicketList(JSON.parse(storedTickets));
-    } else {
-      localStorage.setItem(
-        "tickets",
-        JSON.stringify(mockTickets)
-      );
+    if (error) {
+      console.error("Error loading tickets:", error);
+      return;
     }
-  }, []);
+
+    setTicketList(data || []);
+  };
+
+  loadTickets();
+}, []);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -187,7 +192,7 @@ export default function TicketsPage() {
                     </td>
 
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {ticket.createdAt}
+                      {new Date(ticket.created_at).toLocaleDateString("en-GB")}
                     </td>
                   </tr>
                 ))}

@@ -3,26 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Sidebar from "../components/sidebar";
-import { tickets as mockTickets } from "../data/tickets";
+import { supabase } from "../lib/supabase";
 
 export default function Dashboard() {
     const [ticketList, setTicketList] = useState<any[]>([]);
 
-    useEffect(() => {
-        const storedTickets = localStorage.getItem("tickets");
+useEffect(() => {
+    const loadTickets = async () => {
+        const { data, error } = await supabase
+            .from("tickets")
+            .select("*");
 
-        if (storedTickets) {
-            setTicketList(JSON.parse(storedTickets));
-        } else {
-            setTicketList(mockTickets);
-
-            localStorage.setItem(
-                "tickets",
-                JSON.stringify(mockTickets)
-            );
+        if (error) {
+            console.error("Error loading tickets:", error);
+            return;
         }
-    }, []);
 
+        setTicketList(data ?? []);
+    };
+
+    loadTickets();
+}, []);
     const totalTickets = ticketList.length;
 
     const criticalTickets = ticketList.filter(
@@ -35,8 +36,8 @@ export default function Dashboard() {
 
     const unassignedTickets = ticketList.filter(
         (ticket) =>
-            !ticket.assignedTo ||
-            ticket.assignedTo === "Unassigned"
+            !ticket.assigned_to ||
+            ticket.assigned_to === "Unassigned"
     ).length;
 
     const recentTickets = [...ticketList].reverse().slice(0, 5);

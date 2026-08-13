@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import EmployeeSidebar from "../../components/EmployeeSidebar";
-import { tickets as mockTickets } from "../../data/tickets";
+import { supabase } from "../../lib/supabase";
 
 export default function EmployeeTicketDetailPage() {
     const params = useParams();
@@ -15,42 +15,31 @@ export default function EmployeeTicketDetailPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const loadTicket = () => {
-            const storedTickets = localStorage.getItem("tickets");
+        const loadTicket = async () => {
+            const { data, error } = await supabase
+                .from("tickets")
+                .select("*")
+                .eq("id", params.id)
+                .maybeSingle();
 
-            const ticketList = storedTickets
-                ? JSON.parse(storedTickets)
-                : mockTickets;
+            if (error) {
+                console.error("Error loading ticket:", error);
+                setLoading(false);
+                return;
+            }
 
-            const foundTicket = ticketList.find(
-                (ticket: any) => ticket.id === params.id
-            );
-
-            if (foundTicket) {
-                setTicket(foundTicket);
-                setMessages(foundTicket.conversation ?? []);
+            if (data) {
+                setTicket(data);
+                setMessages(data.conversation ?? []);
             }
 
             setLoading(false);
         };
 
         loadTicket();
-
-        const handleStorageChange = () => {
-            loadTicket();
-        };
-
-        window.addEventListener("storage", handleStorageChange);
-
-        return () => {
-            window.removeEventListener(
-                "storage",
-                handleStorageChange
-            );
-        };
     }, [params.id]);
 
-    const handleSendReply = () => {
+    const handleSendReply = async () => {
         if (!reply.trim() || !ticket) {
             return;
         }
@@ -65,29 +54,21 @@ export default function EmployeeTicketDetailPage() {
             newMessage,
         ];
 
+        const { error } = await supabase
+            .from("tickets")
+            .update({
+                conversation: updatedMessages,
+            })
+            .eq("id", ticket.id);
+
+        if (error) {
+            console.error("Error sending reply:", error);
+            alert("Failed to send reply.");
+            return;
+        }
+
         setMessages(updatedMessages);
         setReply("");
-
-        const storedTickets = localStorage.getItem("tickets");
-
-        if (storedTickets) {
-            const ticketList = JSON.parse(storedTickets);
-
-            const updatedTickets = ticketList.map(
-                (currentTicket: any) =>
-                    currentTicket.id === ticket.id
-                        ? {
-                            ...currentTicket,
-                            conversation: updatedMessages,
-                        }
-                        : currentTicket
-            );
-
-            localStorage.setItem(
-                "tickets",
-                JSON.stringify(updatedTickets)
-            );
-        }
     };
 
     if (loading) {
@@ -149,7 +130,11 @@ export default function EmployeeTicketDetailPage() {
                     </h1>
 
                     <p className="mt-2 text-sm text-gray-500">
-                        Created on {ticket.createdAt}
+                        Created on {new Date(ticket.created_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                        })}
                     </p>
                 </div>
 
@@ -200,7 +185,7 @@ export default function EmployeeTicketDetailPage() {
                             </p>
 
                             <p className="mt-1 font-medium text-gray-900">
-                                {ticket.assignedTo}
+                                {ticket.assigned_to}
                             </p>
                         </div>
                     </div>

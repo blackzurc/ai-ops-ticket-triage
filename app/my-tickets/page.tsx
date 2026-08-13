@@ -3,47 +3,28 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import EmployeeSidebar from "../components/EmployeeSidebar";
-import { tickets as mockTickets } from "../data/tickets";
+import { supabase } from "../lib/supabase";
 
 export default function MyTicketsPage() {
-    const [ticketList, setTicketList] = useState(mockTickets);
+    const [ticketList, setTicketList] = useState<any[]>([]);
 
-    useEffect(() => {
-        const loadTickets = () => {
-            const storedTickets = localStorage.getItem("tickets");
+useEffect(() => {
+    const loadTickets = async () => {
+        const { data, error } = await supabase
+            .from("tickets")
+            .select("*")
+            .order("created_at", { ascending: false });
 
-            if (storedTickets) {
-                setTicketList(JSON.parse(storedTickets));
-            } else {
-                localStorage.setItem(
-                    "tickets",
-                    JSON.stringify(mockTickets)
-                );
+        if (error) {
+            console.error("Error loading tickets:", error);
+            return;
+        }
 
-                setTicketList(mockTickets);
-            }
-        };
+        setTicketList(data || []);
+    };
 
-        // Load tickets when page opens
-        loadTickets();
-
-        // Listen for changes from another tab/window
-        const handleStorageChange = () => {
-            loadTickets();
-        };
-
-        window.addEventListener(
-            "storage",
-            handleStorageChange
-        );
-
-        return () => {
-            window.removeEventListener(
-                "storage",
-                handleStorageChange
-            );
-        };
-    }, []);
+    loadTickets();
+}, []);
 
     return (
         <>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import EmployeeSidebar from "../../components/EmployeeSidebar";
-import { aiTriage } from "../../lib/aiTriage";
+import { supabase } from "../../lib/supabase";
 
 export default function EmployeeNewTicketPage() {
     const router = useRouter();
@@ -13,7 +13,7 @@ export default function EmployeeNewTicketPage() {
     const [category, setCategory] = useState("");
     const [priority, setPriority] = useState("");
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!subject || !description || !category || !priority) {
@@ -21,14 +21,26 @@ export default function EmployeeNewTicketPage() {
             return;
         }
 
-        const aiResult = aiTriage(description);
+        const aiResponse = await fetch("/api/ai-triage", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                description,
+            }),
+        });
 
-        const existingTickets = JSON.parse(
-            localStorage.getItem("tickets") || "[]"
-        );
+        const aiResult = await aiResponse.json();
+
+        if (!aiResponse.ok) {
+            console.error("AI triage failed:", aiResult);
+            alert("AI triage failed. Please try again.");
+            return;
+        }
 
         const newTicketNumber =
-            1001 + existingTickets.length;
+            1001 + Math.floor(Math.random() * 9000);
 
         const newTicket = {
             id: `TK-${newTicketNumber}`,
@@ -37,16 +49,8 @@ export default function EmployeeNewTicketPage() {
             category: category,
             priority: priority,
             status: "Open",
-            assignedTo: "IT Support",
-
-            aiTriage: aiResult,
-
-            createdAt: new Date().toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-            }),
-
+            assigned_to: "IT Support",
+            created_at: new Date().toISOString(),
             employee: "Employee",
 
             conversation: [
@@ -55,17 +59,22 @@ export default function EmployeeNewTicketPage() {
                     message: description,
                 },
             ],
+
+            ai_category: aiResult.category,
+            ai_priority: aiResult.priority,
+            ai_confidence: aiResult.confidence,
+            ai_reasoning: aiResult.reasoning,
         };
 
-        const updatedTickets = [
-            ...existingTickets,
-            newTicket,
-        ];
+        const { error } = await supabase
+            .from("tickets")
+            .insert(newTicket);
 
-        localStorage.setItem(
-            "tickets",
-            JSON.stringify(updatedTickets)
-        );
+        if (error) {
+            console.error("Error creating ticket:", error);
+            alert("Failed to create ticket.");
+            return;
+        }
 
         router.push("/my-tickets");
     };
