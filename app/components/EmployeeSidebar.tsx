@@ -1,6 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { supabase } from "../lib/supabase";
 
 export default function EmployeeSidebar() {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
       <div className="border-b border-gray-200 p-6">
@@ -43,6 +51,13 @@ export default function EmployeeSidebar() {
         <p className="text-xs text-gray-500">
           Staff Member
         </p>
+
+        <button
+          onClick={handleLogout}
+          className="mt-3 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+        >
+          Logout
+        </button>
       </div>
     </aside>
   );

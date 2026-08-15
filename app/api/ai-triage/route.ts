@@ -4,11 +4,25 @@ const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY,
 });
 
+const ALLOWED_CATEGORIES = [
+    "Email",
+    "Network",
+    "Software",
+    "Hardware",
+    "Other",
+];
+
+const ALLOWED_PRIORITIES = [
+    "High",
+    "Medium",
+    "Low",
+];
+
 export async function POST(request: Request) {
     try {
-        const { description } = await request.json();
+        const { title, description } = await request.json();
 
-        if (!description) {
+        if (!description?.trim()) {
             return Response.json(
                 { error: "Description is required" },
                 { status: 400 }
@@ -18,28 +32,50 @@ export async function POST(request: Request) {
         const prompt = `
 You are an IT support ticket triage assistant.
 
-Analyze the following IT support ticket.
+Your job is to analyze an employee's IT support request and determine
+the most appropriate category and priority.
 
-Classify it into ONE of these categories:
+Allowed categories:
 - Email
 - Network
 - Software
 - Hardware
 - Other
 
-Classify priority as:
+Allowed priorities:
 - High
 - Medium
 - Low
 
-Return ONLY valid JSON in this exact format:
+Priority guidelines:
+- High: The issue significantly prevents the employee from working,
+  affects critical systems, or blocks an important business function.
+- Medium: The issue affects the employee's work but there is a workaround
+  or the impact is limited.
+- Low: Minor issue, inconvenience, cosmetic issue, or issue with minimal
+  impact on productivity.
+
+Rules:
+1. Choose exactly ONE category.
+2. Choose exactly ONE priority.
+3. Confidence must be a number between 0 and 100.
+4. Base the decision only on the information provided.
+5. Do not invent technical details.
+6. Keep the reasoning brief and specific.
+7. Return ONLY valid JSON.
+8. Do not use markdown or code fences.
+
+Return exactly this structure:
 
 {
   "category": "Network",
   "priority": "High",
   "confidence": 95,
-  "reasoning": "Brief explanation of why the ticket was classified this way."
+  "reasoning": "Brief explanation based on the ticket information."
 }
+
+Ticket title:
+${title || "No title provided"}
 
 Ticket description:
 ${description}
@@ -57,9 +93,69 @@ ${description}
             .replace(/```/g, "")
             .trim();
 
-        const aiResult = JSON.parse(cleanedResponse);
+        let aiResult;
 
-        return Response.json(aiResult);
+        try {
+            aiResult = JSON.parse(cleanedResponse);
+        } catch {
+            console.error(
+                "Invalid JSON returned by Gemini:",
+                response
+            );
+
+            return Response.json(
+                { error: "AI returned an invalid response" },
+                { status: 502 }
+            );
+        }
+
+        // Validate category
+        if (!ALLOWED_CATEGORIES.includes(aiResult.category)) {
+            return Response.json(
+                { error: "AI returned an invalid category" },
+                { status: 502 }
+            );
+        }
+
+        // Validate priority
+        if (!ALLOWED_PRIORITIES.includes(aiResult.priority)) {
+            return Response.json(
+                { error: "AI returned an invalid priority" },
+                { status: 502 }
+            );
+        }
+
+        // Validate confidence
+        const confidence = Number(aiResult.confidence);
+
+        if (
+            !Number.isFinite(confidence) ||
+            confidence < 0 ||
+            confidence > 100
+        ) {
+            return Response.json(
+                { error: "AI returned an invalid confidence score" },
+                { status: 502 }
+            );
+        }
+
+        // Validate reasoning
+        if (
+            typeof aiResult.reasoning !== "string" ||
+            !aiResult.reasoning.trim()
+        ) {
+            return Response.json(
+                { error: "AI returned invalid reasoning" },
+                { status: 502 }
+            );
+        }
+
+        return Response.json({
+            category: aiResult.category,
+            priority: aiResult.priority,
+            confidence: Math.round(confidence),
+            reasoning: aiResult.reasoning.trim(),
+        });
 
     } catch (error) {
         console.error("AI triage error:", error);
