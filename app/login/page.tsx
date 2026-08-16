@@ -128,16 +128,6 @@ export default function LoginPage() {
             {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
-
-        <div className="mt-6 rounded-lg bg-gray-50 p-4">
-          <p className="text-xs font-medium text-gray-500">
-            Demo Login
-          </p>
-
-          <p className="mt-1 text-xs text-gray-500">
-            Sign in using your Supabase account credentials.
-          </p>
-        </div>
       </div>
     </main>
   );
