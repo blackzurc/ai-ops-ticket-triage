@@ -114,7 +114,8 @@ export default function TicketDetailPage() {
         }
 
         const newMessage = {
-            sender: profile?.full_name || "IT Support",
+            sender: profile?.full_name || user.email || "IT Support",
+            role: "it_support",
             message: reply.trim(),
         };
 
@@ -272,13 +273,12 @@ export default function TicketDetailPage() {
                                     </p>
 
                                     <span
-                                        className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                                            ticket.status === "Open"
+                                        className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-medium ${ticket.status === "Open"
                                                 ? "bg-blue-100 text-blue-700"
                                                 : ticket.status === "In Progress"
-                                                ? "bg-orange-100 text-orange-700"
-                                                : "bg-green-100 text-green-700"
-                                        }`}
+                                                    ? "bg-orange-100 text-orange-700"
+                                                    : "bg-green-100 text-green-700"
+                                            }`}
                                     >
                                         {ticket.status}
                                     </span>
@@ -408,9 +408,9 @@ export default function TicketDetailPage() {
                                     <div
                                         key={index}
                                         className={
-                                            message.sender === "IT Support"
-                                                ? "rounded-lg bg-blue-50 p-4"
-                                                : "rounded-lg bg-gray-50 p-4"
+                                            message.role === "it_support"
+                                                ? "rounded-lg bg-green-50 p-4"
+                                                : "rounded-lg bg-blue-50 p-4"
                                         }
                                     >
                                         <p className="text-sm font-semibold text-gray-900">
@@ -438,7 +438,7 @@ export default function TicketDetailPage() {
                                     setReply(e.target.value)
                                 }
                                 placeholder="Write a message..."
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                             />
 
                             <div className="mt-4 flex justify-end">

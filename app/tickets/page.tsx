@@ -185,13 +185,13 @@ export default function TicketsPage() {
                 placeholder="Search tickets..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 outline-none focus:border-blue-500"
               />
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-4 py-2.5"
+                className="rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900"
               >
                 <option>All Status</option>
                 <option>Open</option>
@@ -202,7 +202,7 @@ export default function TicketsPage() {
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-4 py-2.5"
+                className="rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900"
               >
                 <option>All Priorities</option>
                 <option>High</option>

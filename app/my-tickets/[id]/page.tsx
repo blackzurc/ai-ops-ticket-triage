@@ -16,7 +16,9 @@ export default function EmployeeTicketDetailPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const loadTicket = async () => {
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+
+        const setup = async () => {
             const { data, error } = await supabase
                 .from("tickets")
                 .select("*")
@@ -37,25 +39,51 @@ export default function EmployeeTicketDetailPage() {
             setTicket(data);
             setMessages(data.conversation ?? []);
             setLoading(false);
+
+            // Realtime subscription
+            channel = supabase
+                .channel(`employee-ticket-${params.id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "UPDATE",
+                        schema: "public",
+                        table: "tickets",
+                        filter: `id=eq.${params.id}`,
+                    },
+                    (payload) => {
+                        console.log(
+                            "Employee Ticket UPDATE:",
+                            payload.new
+                        );
+
+                        setTicket(payload.new);
+                        setMessages(
+                            payload.new.conversation ?? []
+                        );
+                    }
+                )
+                .subscribe((status) => {
+                    console.log(
+                        "Employee ticket realtime status:",
+                        status
+                    );
+                });
         };
 
-        loadTicket();
+        setup();
+
+        return () => {
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
+        };
     }, [params.id]);
 
     const handleSendReply = async () => {
         if (!reply.trim() || !ticket) {
             return;
         }
-
-        const newMessage = {
-            sender: "You",
-            message: reply.trim(),
-        };
-
-        const updatedMessages = [
-            ...messages,
-            newMessage,
-        ];
 
         const {
             data: { user },
@@ -65,6 +93,29 @@ export default function EmployeeTicketDetailPage() {
             alert("You must be logged in.");
             return;
         }
+
+        const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        if (profileError) {
+            console.error("Error loading profile:", profileError);
+            alert("Failed to load your profile.");
+            return;
+        }
+
+        const newMessage = {
+            sender: profile?.full_name || user.email || "Employee",
+            role: "employee",
+            message: reply.trim(),
+        };
+
+        const updatedMessages = [
+            ...messages,
+            newMessage,
+        ];
 
         const { error } = await supabase
             .from("tickets")
@@ -307,9 +358,9 @@ export default function EmployeeTicketDetailPage() {
                                 <div
                                     key={index}
                                     className={
-                                        message.sender === "You"
-                                            ? "rounded-lg bg-gray-50 p-4"
-                                            : "rounded-lg bg-blue-50 p-4"
+                                        message.role === "employee"
+                                            ? "rounded-lg bg-blue-50 p-4"
+                                            : "rounded-lg bg-gray-100 p-4"
                                     }
                                 >
                                     <p className="text-sm font-semibold text-gray-900">
@@ -337,7 +388,7 @@ export default function EmployeeTicketDetailPage() {
                                 setReply(e.target.value)
                             }
                             placeholder="Write a message..."
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                         />
 
                         <div className="mt-4 flex justify-end">

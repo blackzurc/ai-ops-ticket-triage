@@ -101,6 +101,7 @@ export default function EmployeeNewTicketPage() {
                 conversation: [
                     {
                         sender: profile?.full_name || user.email || "Employee",
+                        role: "employee",
                         message: description,
                     },
                 ],
@@ -211,7 +212,7 @@ export default function EmployeeNewTicketPage() {
                                 }
                                 placeholder="Enter ticket subject"
                                 disabled={loading}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
 
@@ -233,7 +234,7 @@ export default function EmployeeNewTicketPage() {
                                 }
                                 placeholder="Describe your issue..."
                                 disabled={loading}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
 
