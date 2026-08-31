@@ -6,8 +6,17 @@ import Sidebar from "../components/sidebar";
 import { supabase } from "../lib/supabase";
 import AuthGuard from "../components/AuthGuard";
 
+interface Ticket {
+    id: string;
+    title: string;
+    category: string;
+    status: string;
+    priority: string;
+    created_at?: string;
+}
+
 export default function Dashboard() {
-    const [ticketList, setTicketList] = useState<any[]>([]);
+    const [ticketList, setTicketList] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -62,10 +71,6 @@ export default function Dashboard() {
 
     const resolvedTickets = ticketList.filter(
         (ticket) => ticket.status === "Resolved"
-    ).length;
-
-    const highPriorityTickets = ticketList.filter(
-        (ticket) => ticket.priority === "High"
     ).length;
 
     const recentTickets = ticketList.slice(0, 5);

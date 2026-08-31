@@ -7,11 +7,34 @@ import Sidebar from "../../components/sidebar";
 import { supabase } from "../../lib/supabase";
 import AuthGuard from "../../components/AuthGuard";
 
+interface TicketMessage {
+    sender: string;
+    role?: string;
+    message: string;
+}
+
+interface Ticket {
+    id: string;
+    title: string;
+    status: string;
+    assigned_to?: string | null;
+    category?: string;
+    priority?: string;
+    description?: string;
+    created_at?: string;
+    ai_category?: string;
+    ai_priority?: string;
+    ai_confidence?: number | null;
+    ai_reasoning?: string;
+    conversation?: TicketMessage[];
+    [key: string]: unknown;
+}
+
 export default function TicketDetailPage() {
     const params = useParams();
 
-    const [ticket, setTicket] = useState<any>(null);
-    const [messages, setMessages] = useState<any[]>([]);
+    const [ticket, setTicket] = useState<Ticket | null>(null);
+    const [messages, setMessages] = useState<TicketMessage[]>([]);
     const [reply, setReply] = useState("");
     const [loading, setLoading] = useState(true);
     const [showStatusMenu, setShowStatusMenu] = useState(false);
@@ -38,8 +61,8 @@ export default function TicketDetailPage() {
                 return;
             }
 
-            setTicket(data);
-            setMessages(data.conversation ?? []);
+            setTicket(data as Ticket);
+            setMessages((data.conversation as TicketMessage[]) ?? []);
             setLoading(false);
 
             // Realtime subscription
@@ -59,10 +82,10 @@ export default function TicketDetailPage() {
                             payload.new
                         );
 
-                        setTicket(payload.new);
+                        setTicket(payload.new as Ticket);
 
                         setMessages(
-                            payload.new.conversation ?? []
+                            (payload.new.conversation as TicketMessage[]) ?? []
                         );
                     }
                 )
@@ -248,13 +271,13 @@ export default function TicketDetailPage() {
 
                             <p className="mt-2 text-sm text-gray-500">
                                 Created on{" "}
-                                {new Date(
-                                    ticket.created_at
-                                ).toLocaleDateString("en-GB", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                })}
+                                {ticket.created_at
+                                    ? new Date(ticket.created_at).toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                    })
+                                    : "N/A"}
                             </p>
                         </div>
 
@@ -291,7 +314,7 @@ export default function TicketDetailPage() {
                                     </p>
 
                                     <span className="mt-1 inline-block rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700">
-                                        {ticket.priority}
+                                        {ticket.priority ?? "N/A"}
                                     </span>
                                 </div>
 
@@ -302,7 +325,7 @@ export default function TicketDetailPage() {
                                     </p>
 
                                     <p className="mt-1 font-medium text-gray-900">
-                                        {ticket.category}
+                                        {ticket.category ?? "N/A"}
                                     </p>
                                 </div>
 
@@ -313,7 +336,7 @@ export default function TicketDetailPage() {
                                     </p>
 
                                     <p className="mt-1 font-medium text-gray-900">
-                                        {ticket.assigned_to}
+                                        {ticket.assigned_to ?? "Unassigned"}
                                     </p>
                                 </div>
 
@@ -327,7 +350,7 @@ export default function TicketDetailPage() {
                             </h2>
 
                             <p className="leading-7 text-gray-600">
-                                {ticket.description}
+                                {ticket.description ?? "No description provided."}
                             </p>
                         </div>
 
@@ -354,7 +377,7 @@ export default function TicketDetailPage() {
 
                                     <p className="mt-1 font-medium text-gray-900">
                                         {ticket.ai_category ||
-                                            ticket.category}
+                                            ticket.category || "N/A"}
                                     </p>
                                 </div>
 
@@ -366,7 +389,7 @@ export default function TicketDetailPage() {
 
                                     <p className="mt-1 font-medium text-gray-900">
                                         {ticket.ai_priority ||
-                                            ticket.priority}
+                                            ticket.priority || "N/A"}
                                     </p>
                                 </div>
 
@@ -377,7 +400,7 @@ export default function TicketDetailPage() {
                                     </p>
 
                                     <p className="mt-1 font-medium text-gray-900">
-                                        {ticket.ai_confidence ?? "N/A"}%
+                                        {ticket.ai_confidence ?? "N/A"}
                                     </p>
                                 </div>
 

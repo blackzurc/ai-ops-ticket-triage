@@ -6,19 +6,30 @@ import Sidebar from "../components/sidebar";
 import { supabase } from "../lib/supabase";
 import AuthGuard from "../components/AuthGuard";
 
+interface Ticket {
+  id: string;
+  title: string;
+  category?: string;
+  status: string;
+  priority?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 export default function TicketsPage() {
   const router = useRouter();
 
-  const [ticketList, setTicketList] = useState<any[]>([]);
+  const [ticketList, setTicketList] = useState<Ticket[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [priorityFilter, setPriorityFilter] = useState("All Priorities");
 
   const filteredTickets = ticketList.filter((ticket) => {
+    const category = ticket.category ?? "";
     const matchesSearch =
       ticket.id.toLowerCase().includes(search.toLowerCase()) ||
       ticket.title.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.category.toLowerCase().includes(search.toLowerCase());
+      category.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
       statusFilter === "All Status" ||
@@ -83,7 +94,7 @@ export default function TicketsPage() {
               }
 
               return [
-                payload.new,
+                payload.new as Ticket,
                 ...currentTickets,
               ];
             });
@@ -106,18 +117,14 @@ export default function TicketsPage() {
               currentTickets
                 .map((ticket) =>
                   ticket.id === payload.new.id
-                    ? payload.new
+                    ? (payload.new as Ticket)
                     : ticket
                 )
-                .sort(
-                  (a, b) =>
-                    new Date(
-                      b.created_at
-                    ).getTime() -
-                    new Date(
-                      a.created_at
-                    ).getTime()
-                )
+                .sort((a, b) => {
+                  const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+                  const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+                  return bTime - aTime;
+                })
             );
           }
         )
@@ -292,7 +299,9 @@ export default function TicketsPage() {
                       </td>
 
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(ticket.created_at).toLocaleDateString("en-GB")}
+                        {ticket.created_at
+                          ? new Date(ticket.created_at).toLocaleDateString("en-GB")
+                          : "N/A"}
                       </td>
                     </tr>
                   ))}

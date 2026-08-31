@@ -6,8 +6,18 @@ import EmployeeSidebar from "../components/EmployeeSidebar";
 import { supabase } from "../lib/supabase";
 import AuthGuard from "../components/AuthGuard";
 
+interface Ticket {
+    id: string;
+    title: string;
+    category?: string;
+    status: string;
+    priority?: string;
+    created_at?: string;
+    [key: string]: unknown;
+}
+
 export default function MyTicketsPage() {
-    const [ticketList, setTicketList] = useState<any[]>([]);
+    const [ticketList, setTicketList] = useState<Ticket[]>([]);
 
     useEffect(() => {
         let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -40,7 +50,7 @@ export default function MyTicketsPage() {
                         setTicketList((currentTickets) =>
                             currentTickets.map((ticket) =>
                                 ticket.id === payload.new.id
-                                    ? payload.new
+                                    ? (payload.new as Ticket)
                                     : ticket
                             )
                         );
@@ -68,7 +78,7 @@ export default function MyTicketsPage() {
                             }
 
                             return [
-                                payload.new,
+                                payload.new as Ticket,
                                 ...currentTickets,
                             ];
                         });
@@ -162,7 +172,7 @@ export default function MyTicketsPage() {
                             {ticketList.length === 0 ? (
                                 <div className="rounded-xl bg-white p-8 text-center shadow-sm">
                                     <p className="text-gray-500">
-                                        You don't have any tickets yet.
+                                        You do not have any tickets yet.
                                     </p>
                                 </div>
                             ) : (
