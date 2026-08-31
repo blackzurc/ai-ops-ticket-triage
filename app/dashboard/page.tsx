@@ -73,6 +73,10 @@ export default function Dashboard() {
         (ticket) => ticket.status === "Resolved"
     ).length;
 
+    const highPriorityTickets = ticketList.filter(
+        (ticket) => ticket.priority === "High"
+    ).length;
+
     const recentTickets = ticketList.slice(0, 5);
 
     return (
